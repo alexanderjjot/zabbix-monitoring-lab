@@ -39,4 +39,6 @@ Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację se
 
 ![Status komunikacji z agentami](zabbix_hosts.png)
 ![Dashboard Monitoringu](dashboard.png)
-![Wykres CPU Windows 10](zabbix_graph_SRV_CPU.png)
+![Wykres CPU Windows Server 2022](zabbix_graph_SRV_CPU.png)
+![Wykres CPU Windows 10 IoT](zabbix_graph_WRK_CPU.png)
+
