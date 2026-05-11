@@ -38,5 +38,5 @@ W ramach laboratorium skonfigurowałem zbieranie kluczowych metryk wydajnościow
 Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację serwera z agentami oraz przykładowe wykresy wydajnościowe.
 
 ![Status komunikacji z agentami](zabbix_hosts.png)
-![Dashboard Monitoringu](lashboard.png)
+![Dashboard Monitoringu](dashboard.png)
 ![Wykres CPU Windows 10](link_do_pliku_wykresu.png)
