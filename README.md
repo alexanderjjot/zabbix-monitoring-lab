@@ -39,4 +39,4 @@ Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację se
 
 ![Status komunikacji z agentami](zabbix_hosts.png)
 ![Dashboard Monitoringu](dashboard.png)
-![Wykres CPU Windows 10](link_do_pliku_wykresu.png)
+![Wykres CPU Windows 10](zabbix_graph_SRV_CPU.png)
