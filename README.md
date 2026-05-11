@@ -25,3 +25,18 @@ Projekt autorskiego laboratorium monitoringu opartego na stosie Zabbix, wdrożon
 | **WRK-WIN-10** | Intel Pentium P6200 (2.13GHz) | 8GB DDR3 1333MHz | Monitorowana Stacja Robocza |
 ## Architektura (Draft)
 Serwer Zabbix pracuje wewnątrz izolowanej sieci Dockerowej, komunikując się z agentami na hostach fizycznych i wirtualnych poprzez mapowanie portów i konfigurację reguł firewall.
+
+## Monitorowane parametry (Latest Data)
+
+W ramach laboratorium skonfigurowałem zbieranie kluczowych metryk wydajnościowych:
+* **CPU Load / Utilization** (procentowe zużycie oraz obciążenie średnie).
+* **Memory usage** (pamięć dostępna vs wykorzystana).
+* **ICMP Ping** (dostępność hostów w sieci lokalnej).
+* **System information** (wersje OS, uptime).
+
+### Wizualizacja danych
+Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację serwera z agentami oraz przykładowe wykresy wydajnościowe.
+
+![Status komunikacji z agentami](zabbix_hosts.png)
+![Dashboard Monitoringu](link_do_pliku_dashboard.png)
+![Wykres CPU Windows 10](link_do_pliku_wykresu.png)
