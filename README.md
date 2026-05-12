@@ -43,8 +43,9 @@ Projekt wykorzystuje architekturę kontenerową oraz hybrydowe środowisko sieci
 W repozytorium znajduje się plik `docker-compose.yml`. Zgodnie z zasadami bezpieczeństwa, zmienne środowiskowe (hasła, loginy do bazy danych) zostały wydzielone do zewnętrznych plików `.env`, które nie są upubliczniane w systemie kontroli wersji.
 
 W repozytorium znajduje się plik `docker-compose.yml` (z zanonimizowanymi danymi dostępowymi), który definiuje całe środowisko.
+
 ## Architektura (Draft)
-Serwer Zabbix pracuje wewnątrz izolowanej sieci Dockerowej, komunikując się z agentami na hostach fizycznych i wirtualnych poprzez mapowanie portów i konfigurację reguł firewall.
+Serwer Zabbix pracuje wewnątrz izolowanej sieci Dockerowej, komunikując się z agentami na hostach fizycznych i wirtualnych poprzez mapowanie portów i konfigurację reguł firewall. Architektura laboratorium wykorzystuje mieszane medium transmisyjne: serwer monitoringu (Ubuntu) komunikuje się poprzez sieć bezprzewodową (Wi-Fi), natomiast stacje monitorowane podłączone są do infrastruktury kablowej (LAN). Wymusiło to odpowiednią konfigurację reguł routingu na routerze brzegowym, aby zapewnić pełną widoczność między podsieciami.
 
 ## Monitorowane parametry (Latest Data)
 
@@ -61,4 +62,15 @@ Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację se
 ![Dashboard Monitoringu](dashboard.png)
 ![Wykres CPU Windows Server 2022](zabbix_graph_SRV_CPU.png)
 ![Wykres CPU Windows 10 IoT](zabbix_graph_WRK_CPU.png)
+
+## Dokumentacja problemów (Troubleshooting & Case Studies)
+
+### 1. Windows Defender vs Zabbix Agent
+**Problem:** Przerywane wykresy CPU/RAM na Windows 10.
+**Analiza:** Heurystyka Windows Defender blokowała pakiety agenta po krótkim czasie aktywności.
+**Rozwiązanie:** Skonfigurowano wykluczenia (Exclusions) dla procesu `zabbix_agentd.exe` oraz reguły Inbound w Firewallu.
+
+### 2. Docker Bridge Networking
+**Problem:** Brak łączności z agentem na systemie-hoście.
+**Rozwiązanie:** Przekierowanie ruchu na dedykowany port 10052 i konfiguracja `ServerActive` na adres IP bramy Docker.
 
