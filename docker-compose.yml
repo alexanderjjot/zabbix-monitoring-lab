@@ -5,12 +5,16 @@ services:
     image: postgres:15-alpine
     volumes:
       - ./zbx_env/var/lib/postgresql/data:/var/lib/postgresql/data:rw
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     env_file:
       - .env_db
 
   # Serwer Zabbix
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:ubuntu-6.4-latest
+    environment:
+      - TZ=Europe/Warsaw
     ports:
       - "10051:10051"
     volumes:
@@ -24,6 +28,8 @@ services:
   # Frontend (Interfejs graficzny na Nginx)
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:ubuntu-6.4-latest
+    environment:
+      - TZ=Europe/Warsaw
     ports:
       - "8080:8080"
     env_file:

@@ -45,7 +45,7 @@ W repozytorium znajduje się plik `docker-compose.yml`. Zgodnie z zasadami bezpi
 W repozytorium znajduje się plik `docker-compose.yml` (z zanonimizowanymi danymi dostępowymi), który definiuje całe środowisko.
 
 ## Architektura (Draft)
-Serwer Zabbix pracuje wewnątrz izolowanej sieci Dockerowej, komunikując się z agentami na hostach fizycznych i wirtualnych poprzez mapowanie portów i konfigurację reguł firewall. Architektura laboratorium wykorzystuje mieszane medium transmisyjne: serwer monitoringu (Ubuntu) komunikuje się poprzez sieć bezprzewodową (Wi-Fi), natomiast stacje monitorowane podłączone są do infrastruktury kablowej (LAN). Wymusiło to odpowiednią konfigurację reguł routingu na routerze brzegowym, aby zapewnić pełną widoczność między podsieciami.
+Serwer Zabbix pracuje wewnątrz izolowanej sieci Dockerowej, komunikując się z agentami na hostach fizycznych i wirtualnych poprzez mapowanie portów i konfigurację reguł firewall. Architektura laboratorium wykorzystuje mieszane medium transmisyjne: serwer monitoringu (Ubuntu) komunikuje się poprzez sieć bezprzewodową (Wi-Fi), natomiast stacje monitorowane podłączone są do infrastruktury kablowej (LAN). Wymusiło to odpowiednią konfigurację reguł routingu na routerze brzegowym, aby zapewnić pełną idoczność między podsieciami.
 
 ## Monitorowane parametry (Latest Data)
 
@@ -73,4 +73,29 @@ Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację se
 ### 2. Docker Bridge Networking
 **Problem:** Brak łączności z agentem na systemie-hoście.
 **Rozwiązanie:** Przekierowanie ruchu na dedykowany port 10052 i konfiguracja `ServerActive` na adres IP bramy Docker.
+
+## Rozwiązanie problemu (Troubleshooting)
+
+Podczas wdrażania monitoringu napotkano problem z ciągłością danych dla stacji roboczych z systemem Windows (**WRK-WIN-10**). Poniżej znajduje się analiza i opis techniczny rozwiązania.
+
+### 1. Symptomy
+* Wykresy w panelu Zabbix były przerywane (tzw. "dziury" w danych - stacja robocza WRK-WIN-10)
+* Dane pojawiały się z dużym opóźnieniem lub były ignorowane przez serwer.
+
+### 2. Diagnoza (Root Cause Analysis)
+Podczas inspekcji logów i porównania czasu systemowego wykryto niezgodność stref czasowych (**Timezone Mismatch**):
+* **Host/Agenty:** Pracowały w czasie lokalnym (**CEST**, UTC+2).
+* **Zabbix Server (Docker):** Pracował w czasie uniwersalnym (**UTC**).
+* **Clock Drift:** Wykryto również 5-sekundowe przesunięcie zegara między kontenerem a systemem operacyjnym hosta.
+
+Zabbix Server interpretował dane od agentów jako "dane z przyszłości", co powodowało błędy w indeksowaniu bazy danych i uniemożliwiało poprawne renderowanie wykresów w czasie rzeczywistym.
+
+### 3. Rozwiązanie
+Zastosowano wymuszoną synchronizację czasu dla całego stosu technologicznego:
+* **Konfiguracja Docker Compose:** Dodano zmienną środowiskową `TZ=Europe/Warsaw` dla usług `zabbix-server` oraz `zabbix-web-apache-php`.
+* **Mapowanie wolumenów:** Zmapowano pliki systemowe `/etc/localtime` oraz `/etc/timezone` z hosta do kontenerów w trybie tylko do odczytu (`ro`).
+* **Weryfikacja:** Potwierdzono poprawność czasu wewnątrz kontenera:
+  ```bash
+  sudo docker exec -it zabbix-docker-zabbix-server-1 date
+  # Wynik: Wed May 13 12:41:17 CEST 2026
 
