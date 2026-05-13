@@ -114,7 +114,8 @@ Mimo poprawnej synchronizacji czasu (UTC/CEST), wykresy dla stacji roboczej **WR
 *   Dzięki odciążeniu procesora od stałego nasłuchiwania na porcie 10050, uzyskano pełną ciągłość danych i stabilizację wykresów.
 
 **Weryfikacja wizualna:**  
-**Zrzut ekranu: Ciągły wykres CPU po zmianie na Active**
-*   [Zrzut ekranu: Ciągły wykres CPU po zmianie na Active](./img/troubleshooting/win10_active_success.png)
-**Wykres CPU Windows 10 IoT przed zmianą na Active**
-*   [Wykres CPU Windows 10 IoT](./img/monit12052026/zabbix_graph_WRK_CPU.png)
+
+#### Zrzut ekranu: Ciągły wykres CPU po zmianie na Active
+![Zrzut ekranu: Ciągły wykres CPU po zmianie na Active](./img/troubleshooting/win10_active_success.png)
+#### Wykres CPU Windows 10 IoT przed zmianą na Active
+![Wykres CPU Windows 10 IoT](./img/monit12052026/zabbix_graph_WRK_CPU.png)
