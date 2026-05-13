@@ -57,45 +57,64 @@ W ramach laboratorium skonfigurowałem zbieranie kluczowych metryk wydajnościow
 
 ### Wizualizacja danych
 Poniżej znajdują się zrzuty ekranu przedstawiające poprawną komunikację serwera z agentami oraz przykładowe wykresy wydajnościowe.
-
-![Status komunikacji z agentami](zabbix_hosts.png)
-![Dashboard Monitoringu](dashboard.png)
-![Wykres CPU Windows Server 2022](zabbix_graph_SRV_CPU.png)
-![Wykres CPU Windows 10 IoT](zabbix_graph_WRK_CPU.png)
+#### Status komunikacji z agentami
+![Status komunikacji z agentami](./img/monit12052026/zabbix_hosts.png)
+#### Dashboard Monitoringu
+![Dashboard Monitoringu](./img/monit12052026/dashboard.png)
+#### Wykres CPU Windows Server 2022
+![Wykres CPU Windows Server 2022](./img/monit12052026/zabbix_graph_SRV_CPU.png)
+#### Wykres CPU Windows 10 IoT
+![Wykres CPU Windows 10 IoT](./img/monit12052026/zabbix_graph_WRK_CPU.png)
 
 ## Dokumentacja problemów (Troubleshooting & Case Studies)
 
-### 1. Windows Defender vs Zabbix Agent
-**Problem:** Przerywane wykresy CPU/RAM na Windows 10.
-**Analiza:** Heurystyka Windows Defender blokowała pakiety agenta po krótkim czasie aktywności.
-**Rozwiązanie:** Skonfigurowano wykluczenia (Exclusions) dla procesu `zabbix_agentd.exe` oraz reguły Inbound w Firewallu.
+### 1. Architektura Portów i Łączność (Security & Networking)
+Wdrożenie wymagało precyzyjnej konfiguracji przepływu pakietów między siecią izolowaną (Docker), systemem Ubuntu (Host) a zewnętrznymi stacjami Windows.
 
-### 2. Docker Bridge Networking
-**Problem:** Brak łączności z agentem na systemie-hoście.
-**Rozwiązanie:** Przekierowanie ruchu na dedykowany port 10052 i konfiguracja `ServerActive` na adres IP bramy Docker.
+*   **Zastosowane Porty:**
+    *   **10050 (TCP):** Wykorzystywany do odpytywania agentów w trybie pasywnym (Zabbix Server -> Agent).
+    *   **10051 (TCP):** Kluczowy port dla trybu Aktywnego (Agent -> Zabbix Server).
+    *   **10052 (TCP):** Zabbix Java Gateway – zarezerwowany dla przyszłej rozbudowy o monitorowanie aplikacji Java.
+*   **Problem Windows Defender:** Heurystyka systemu Windows blokowała komunikację agenta po krótkim czasie aktywności. 
+*   **Rozwiązanie:** Skonfigurowano wykluczenia (Exclusions) dla procesu `zabbix_agentd.exe` oraz reguły Inbound w Firewallu dla portów TCP **10050-10051**.
+*   **Docker Bridge Networking:** Aby umożliwić monitorowanie systemu Ubuntu (hosta i5), w konfiguracji agenta ustawiono parametr `ServerActive=172.17.0.1` (adres bramy Docker), co pozwoliło na komunikację między siecią kontenerową a systemem macierzystym.
 
-## Rozwiązanie problemu (Troubleshooting)
+---
 
-Podczas wdrażania monitoringu napotkano problem z ciągłością danych dla stacji roboczych z systemem Windows (**WRK-WIN-10**). Poniżej znajduje się analiza i opis techniczny rozwiązania.
+### 2. Desynchronizacja czasu (Timezone Mismatch)
+**Problem:** Dane na wykresach pojawiały się z dużym opóźnieniem lub były całkowicie ignorowane przez bazę danych, co uniemożliwiało monitoring w czasie rzeczywistym.
 
-### 1. Symptomy
-* Wykresy w panelu Zabbix były przerywane (tzw. "dziury" w danych - stacja robocza WRK-WIN-10)
-* Dane pojawiały się z dużym opóźnieniem lub były ignorowane przez serwer.
+**Diagnoza (Root Cause Analysis):**
+Podczas inspekcji logów wykryto konflikt stref czasowych pomiędzy elementami stosu:
+*   **Hosty i Agenty:** Pracowały w czasie lokalnym (**CEST**, UTC+2).
+*   **Zabbix Server (Kontener Docker):** Pracował w czasie uniwersalnym (**UTC**).
+Zabbix Server interpretował dane od agentów jako "paczki z przyszłości", co powodowało błędy w indeksowaniu bazy danych SQL i powstawanie luk na osi czasu.
 
-### 2. Diagnoza (Root Cause Analysis)
-Podczas inspekcji logów i porównania czasu systemowego wykryto niezgodność stref czasowych (**Timezone Mismatch**):
-* **Host/Agenty:** Pracowały w czasie lokalnym (**CEST**, UTC+2).
-* **Zabbix Server (Docker):** Pracował w czasie uniwersalnym (**UTC**).
-* **Clock Drift:** Wykryto również 5-sekundowe przesunięcie zegara między kontenerem a systemem operacyjnym hosta.
+**Rozwiązanie:**
+Zastosowano wymuszoną synchronizację strefy czasowej dla całego stosu technologicznego:
+*   W pliku `docker-compose.yaml` dodano zmienną środowiskową: `TZ=Europe/Warsaw`.
+*   Zmapowano pliki systemowe hosta `/etc/localtime` oraz `/etc/timezone` do kontenerów w trybie tylko do odczytu (`ro`).
+*   **Weryfikacja poprawności (Timestamp z momentu naprawy):** 
+    ```bash
+    sudo docker exec -it zabbix-docker-zabbix-server-1 date
+    # Wynik: Wed May 13 12:41:17 CEST 2026
 
-Zabbix Server interpretował dane od agentów jako "dane z przyszłości", co powodowało błędy w indeksowaniu bazy danych i uniemożliwiało poprawne renderowanie wykresów w czasie rzeczywistym.
+### 3. Wydajność sprzętowa vs Model Komunikacji (Case Study: WRK-WIN-10)
 
-### 3. Rozwiązanie
-Zastosowano wymuszoną synchronizację czasu dla całego stosu technologicznego:
-* **Konfiguracja Docker Compose:** Dodano zmienną środowiskową `TZ=Europe/Warsaw` dla usług `zabbix-server` oraz `zabbix-web-apache-php`.
-* **Mapowanie wolumenów:** Zmapowano pliki systemowe `/etc/localtime` oraz `/etc/timezone` z hosta do kontenerów w trybie tylko do odczytu (`ro`).
-* **Weryfikacja:** Potwierdzono poprawność czasu wewnątrz kontenera:
-  ```bash
-  sudo docker exec -it zabbix-docker-zabbix-server-1 date
-  # Wynik: Wed May 13 12:41:17 CEST 2026
+**Problem:**  
+Mimo poprawnej synchronizacji czasu (UTC/CEST), wykresy dla stacji roboczej **WRK-WIN-10** (Intel Pentium P6200, 8GB DDR3 1333MHz) nadal wykazywały brak ciągłości danych (charakterystyczne "dziury" na osi czasu).
 
+**Analiza wydajnościowa:**  
+*   Zaobserwowano, że maszyna **SRV-WIN-2022** (Intel Celeron N2840, 4GB RAM), mimo słabszej specyfikacji, utrzymywała stabilne połączenie w trybie pasywnym.
+*   W przypadku procesora Pentium P6200 na stacji **WRK-WIN-10**, tryb pasywny (nasłuchiwanie na porcie 10050) okazał się nieefektywny. Starsza architektura procesora nie radziła sobie z terminowym generowaniem odpowiedzi na zapytania serwera w oknie czasowym (*Timeout*), co skutkowało porzucaniem pakietów.
+
+**Rozwiązanie:**  
+*   Podjęto decyzję o zmianie modelu komunikacji na **Zabbix Agent (Active)** wyłącznie dla tej jednostki.
+*   W tym trybie agent samodzielnie inicjuje połączenie i przesyła dane na port **10051** serwera w momencie dostępności wolnych cykli procesora.
+*   Dzięki odciążeniu procesora od stałego nasłuchiwania na porcie 10050, uzyskano pełną ciągłość danych i stabilizację wykresów.
+
+**Weryfikacja wizualna:**  
+**Zrzut ekranu: Ciągły wykres CPU po zmianie na Active**
+*   [Zrzut ekranu: Ciągły wykres CPU po zmianie na Active](./img/troubleshooting/win10_active_success.png)
+**Wykres CPU Windows 10 IoT przed zmianą na Active**
+*   [Wykres CPU Windows 10 IoT](./img/monit12052026/zabbix_graph_WRK_CPU.png)
