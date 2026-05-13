@@ -119,3 +119,29 @@ Mimo poprawnej synchronizacji czasu (UTC/CEST), wykresy dla stacji roboczej **WR
 ![Zrzut ekranu: Ciągły wykres CPU po zmianie na Active](./img/troubleshooting/win10_active_success.png)
 #### Wykres CPU Windows 10 IoT przed zmianą na Active
 ![Wykres CPU Windows 10 IoT](./img/monit12052026/zabbix_graph_WRK_CPU.png)
+
+### 4. Diagnostyka i optymalizacja pamięci operacyjnej (Zabbix Self-Monitoring)
+
+**Problem:** 
+Mapa topologiczna sieci zgłosiła krytyczne ostrzeżenie dla węzła **Zabbix Server**. System operacyjny hosta (Ubuntu) raportował niemal całkowite wyczerpanie przestrzeni wymiany SWAP (ponad 99% zajętości).
+
+**Analiza (Root Cause Analysis):**
+Na podstawie 6-godzinnego wykresu historycznego (**linuxSwapFreeSpaceIssue6h.png**) zdiagnozowano liniowy trend wzrostu zużycia pamięci. 
+*   **Początek okresu:** Wolna przestrzeń SWAP wynosiła ok. 500-600 MB.
+*   **Koniec okresu:** Wolna przestrzeń spadła do krytycznego poziomu **192 KB** (0.006%), co udokumentowano na szczegółowym wykresie parametrów (**image_1fe457.png**).
+Główną przyczyną było wysokie zapotrzebowanie kontenerów Docker (Zabbix Server + Baza danych SQL) na pamięć RAM, co wymusiło na jądrze Linuxa przeniesienie nieaktywnych stron pamięci do zbyt małego pliku `/swapfile` (domyślnie 4GB).
+
+**Rozwiązanie:** 
+Zdecydowano o natychmiastowej interwencji systemowej w celu uniknięcia aktywacji mechanizmu *OOM Killer* (Out Of Memory Killer), który mógłby doprowadzić do niekontrolowanego zamknięcia serwera Zabbix.
+
+1.  **Rozszerzenie zasobów:** Powiększono plik wymiany z 4GB do **8GB** przy użyciu narzędzi systemowych `fallocate` oraz `mkswap`.
+2.  **Optymalizacja Kernel Linux:** Skonfigurowano parametr `vm.swappiness=10`, co ogranicza skłonność systemu do korzystania ze SWAP-a, gdy dostępny jest jeszcze fizyczny RAM, co znacząco poprawia wydajność operacji I/O.
+3.  **Weryfikacja:** Po zmianach system odzyskał 77,5% wolnej przestrzeni wymiany, co potwierdzono zmianą statusu na mapie sieci na "OK" (zielony).
+
+> Referencja wizualna:
+#### Trend wyczerpywania pamięci w ciągu 6 godzin.
+![linuxSwapFreeSpaceIssue6h.png](./img/troubleshooting/linuxSwapFreeSpaceIssue6h.png)
+#### Stan krytyczny tuż przed interwencją administratora
+![image_1fe457.png](./img/troubleshooting/image_1fe457.png)
+#### Stan po rozszerzeniu zasobów pliku wymiany z 4GB do 8GB 
+![afterSWAPextension.png](./img/troubleshooting/afterSWAPextension.png)
