@@ -145,3 +145,23 @@ Zdecydowano o natychmiastowej interwencji systemowej w celu uniknięcia aktywacj
 ![image_1fe457.png](./img/troubleshooting/image_1fe457.png)
 #### Stan po rozszerzeniu zasobów pliku wymiany z 4GB do 8GB 
 ![afterSWAPextension.png](./img/troubleshooting/afterSWAPextension.png)
+
+## 🗺️ Wizualizacja Infrastruktury i Monitoring (Zabbix Maps)
+
+Ostatnim etapem projektu było wdrożenie interaktywnej mapy topologii sieci w Zabbixie. Mapa ta służy jako graficzny interfejs (Single Pane of Glass) do monitorowania stanu całego laboratorium w czasie rzeczywistym.
+
+### Implementacja i Metodyka
+
+*   **Pełna Wizualizacja Stacku (Full Stack Visualization):**
+    *   Odwzorowano hierarchię systemu: od warstwy fizycznej (Router ISP, Host Dell Latitude) po warstwę wirtualizacji (Docker Daemon, Images, Containers).
+    *   Wprowadzono logiczny podział na sekcje `Images` (szablony/warstwy budowania) oraz `Containers` (aktywne mikroserwisy), co pozwala na natychmiastowe zrozumienie architektury systemu.
+*   **Hybrydowy Model Komunikacji (Active vs Passive):**
+    *   W celu optymalizacji obciążenia serwera oraz testowania różnych scenariuszy sieciowych, zaimplementowano dwa tryby pracy Agentów:
+        *   **Active Agent (WRK-WIN-10 & Docker Host):** Klient inicjuje połączenie z serwerem. Zastosowano dla stacji roboczej oraz głównego węzła Docker, co odciąża procesy odpytywania (pollery) serwera Zabbix.
+        *   **Passive Agent (SRV-WIN-2022):** Klasyczny model odpytywania (polling), zapewniający stabilny monitoring infrastruktury serwerowej ze stałym adresem IP.
+*   **Monitoring Metryk Życiowych (Real-time Dashboards):**
+    *   Wykorzystano makra Zabbix (`{?last(//...)}`) do dynamicznego wyświetlania metryk takich jak **CPU Load, RAM Usage** oraz **SWAP** bezpośrednio pod ikonami urządzeń.
+    *   Zaimplementowano wskaźniki problemów (Trigger indicators) na łączach i ikonach, które automatycznie zmieniają kolor lub wyświetlają alerty w przypadku awarii (np. zatrzymanie usług systemowych).
+
+---
+![Zabbix Infrastructure Map](./img/Maps/firstMap.png) 
